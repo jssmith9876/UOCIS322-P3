@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+   <head>
+      <!-- Using Bootstrap, so that we're `responsive`! -->
+      <!-- Bootstrap requires the following three meta tags to fully function -->
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <!-- Javascript and Cascading Style Sheets (css) libraries -->
+      <!-- mostly from content delivery networks                 -->
+      <!-- jquery; CDN load is usually quick because it's likely cached -->
+      <script type="text/javascript"
+         src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+      <!-- 12 column grid rearranges itself for smaller screens or windows. -->
+      <!-- This project is using an older version, make sure to check out newer versions! -->
+      <!-- http://getbootstrap.com/getting-started/  -->
+      <!-- Compiled and minified CSS -->
+      <link rel="stylesheet"
+         href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+         integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+         crossorigin="anonymous">
+      <!-- Compiled and minified JavaScript -->
+      <script
+         src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+         integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+         crossorigin="anonymous"></script>
+      <!-- Let's set our title! -->
+      <title>Vocabulary Anagram</title>
+      <!-- Our own css file.  Note how we can link directly here and not -->
+      <!-- write any routing code in the Flask application. -->
+      <link rel="stylesheet" href="/static/jumble.css" />
+      <script>
+         // var target;
+         // var used_letters;
+         // $.getJSON("_getinfo", function(data) {
+         //    //console.log(data.letters);
+         //    target = data.target;
+         //    used_letters = data.letters;
+         // });
+      </script>
+   </head>
+   <body>
+      <div class="container">
+         <div class="row">
+            <div class="col-xs-6 text-center">
+               <h1>Words</h1>
+            </div>
+         </div>
+         <!-- Vocabularly words layed out in 6 columns;
+             bootstrap may collapse to fewer columns and
+             more rows if the window is narrow.
+            -->
+         <!-- <div class="row">
+            <div class="col-xs-2 text-center"> </div>
+         </div> -->
+         <div class="word-group">
+
+         </div>
+         <script>
+            // Get the words and render them accordingly
+            // $.getJSON("/_getwords", function(words) {
+            //    var count = 0;
+            //    for (var w_ind in words) {
+            //       if (w_ind % 3 == 0) {
+            //          count++;
+            //          var curr_row = 'row-' + count.toString();
+            //          $(".word-group").append("<div class='row' id='" + curr_row + "'></div>");
+                     
+            //       }
+            //       $("#" + curr_row).append("<div class='col-xs-2 text-center'> " + words[w_ind] + " </div>");
+            //       //console.log(words[w_ind]);
+            //    }
+            // });
+         </script>
+         <!-- row -->
+         <br />
+         <div class="row">
+            <div class="col-xs-6 text-center">
+               Use letters from
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-xs-6 text-center lead">
+               <strong id="letters"></strong>
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-xs-6 text-center">
+               to spell <span id="target"></span> words from the list.
+            </div>
+            <!-- col -->
+         </div>
+         <!-- row -->
+         <br />
+         <div class="row">
+            <div class="col-xs-6 text-center">
+               <form id="entry" method="POST" action="/_check">
+                  <label for="attempt">Word:</label>
+                  <input id="attempt" name="attempt" type="text" width="15"
+                     autocomplete="off"  autofocus />
+                  <!-- <input type="submit" name="try" /> -->
+               </form>
+            </div>
+         </div>
+         <br />
+         <h2 id="post-found">You found</h2>
+         <p id="results">
+         </p>
+         <p class="message"></p>
+         <script>
+            // Set the target in the html
+            function setTarget(target) {
+               $("#target").append(target);
+            }
+
+            // Set the letters in the html
+            function setLetters(letters) {
+               $("#letters").append(letters);
+            }
+
+            // Set the words to be displayed in the html
+            function setWords(words) {
+               var count = 0;
+               for (var i = 0; i < words.length; i++) {
+                  if (i % 3 == 0) {
+                     count++;
+                     var curr_row = 'row-' + count.toString();
+                     $(".word-group").append("<div class='row' id='" + curr_row + "'></div>");      
+                  }
+                  $("#" + curr_row).append("<div class='col-xs-2 text-center'> " + words[i] + " </div>");
+               }
+            }
+
+            // Get the information (target, letters, wordlist)
+            var target;
+            var letters;
+            var words;
+            var found = [];
+
+            $.getJSON("/_getinfo", function(info) {
+               target = info.target;
+               letters = info.letters;
+               words = info.words;
+               
+               setTarget(target);
+               setLetters(letters);
+               setWords(words);
+            });
+
+            $("#attempt").keyup(function (event) {
+               // Get the text from the user
+               var user_input = $(this).val();
+               
+               // If the user entered a word from the list
+               if (words.includes(user_input)) {
+                  // Clear any messages we had
+                  $(".message").empty();
+                  // Check if the word is made from the from the given letters
+                  $.getJSON("/_checkword", {word: user_input}, function(data) {
+                     var result = data.result.uses_letters;
+                     // If the word is used from given letters
+                     if (result) {
+                        console.log(found.includes(user_input));
+                        // If the word has already been found
+                        if (found.includes(user_input)) {
+                           $(".message").append("You already found " + user_input);
+                        }
+                        else {
+                           // Add the word to the list of found words
+                           found.push(user_input);
+
+                           // Show the 'You Found' header
+                           $("#post-found").css("display", "block");
+                           // Add the word to the list of found words
+                           $("#results").append(user_input + " ");
+                           // Decrement the number of words left
+                           target--;
+                           $("#target").text(target);
+                        }
+                     }
+                     // Otherwise, 
+                     else {
+                        // Add a message saying that they entered an invalid word
+                        $(".message").append('"' + user_input + '" can\'t be made from the letters ' + letters);
+                     }   
+                  })
+                  // Clear the textbox
+                  $("#attempt").val('');
+               }
+               event.stopImmediatePropagation();
+            });
+         </script>
+      </div>
+      <!-- container -->
+   </body>
+</html>

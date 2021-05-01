@@ -52,6 +52,9 @@ def index():
     app.logger.debug("At least one seems to be set correctly")
     return flask.render_template('vocab.html')
 
+@app.route("/test")
+def testpage():
+    return flask.render_template('vocab_js.html')
 
 @app.route("/keep_going")
 def keep_going():
@@ -130,6 +133,45 @@ def example():
     """
     app.logger.debug("Got a JSON request")
     rslt = {"key": "value"}
+    return flask.jsonify(result=rslt)
+
+# @app.route("/_getwords")
+# def getWords():
+#     words = WORDS.as_list()
+#     words_json = {}
+#     count = 0
+#     for word in words:
+#         words_json[count] = word
+#         count += 1
+#     return flask.jsonify(words_json)
+
+# @app.route("/_getinfo")
+# def getInfo():
+#     info = {}
+#     info['target'] = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
+#     info['letters'] = jumbled(WORDS.as_list(), info['target'])
+#     return flask.jsonify(info)
+
+target = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
+letters_to_use = jumbled(WORDS.as_list(), target)
+
+@app.route("/_getinfo")
+def getInfo():
+    info = {}
+    info['target'] = target
+    info['letters'] = letters_to_use
+    word_list = WORDS.as_list()
+    info['words'] = word_list
+    # count = 0
+    # for word in word_list:
+    #     info['words'][count] = word
+    #     count += 1
+    return flask.jsonify(info)
+
+@app.route("/_checkword")
+def checkword():
+    word = flask.request.args.get("word", type=str)
+    rslt = {"uses_letters": LetterBag(letters_to_use).contains(word)}
     return flask.jsonify(result=rslt)
 
 

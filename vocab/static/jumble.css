@@ -13,3 +13,7 @@
 .message { 
     color: red;
 }
+
+#post-found {
+    display: none;
+}
