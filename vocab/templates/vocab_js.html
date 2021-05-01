@@ -107,6 +107,7 @@
          <p id="results">
          </p>
          <p class="message"></p>
+         <h2 id="winner">You Won!</h2>
          <script>
             // Set the target in the html
             function setTarget(target) {
@@ -136,7 +137,9 @@
             var letters;
             var words;
             var found = [];
+            var hasWon = false;
 
+            // Get and set the info from the flask API
             $.getJSON("/_getinfo", function(info) {
                target = info.target;
                letters = info.letters;
@@ -148,46 +151,52 @@
             });
 
             $("#attempt").keyup(function (event) {
-               // Get the text from the user
-               var user_input = $(this).val();
-               
-               // If the user entered a word from the list
-               if (words.includes(user_input)) {
-                  // Clear any messages we had
-                  $(".message").empty();
-                  // Check if the word is made from the from the given letters
-                  $.getJSON("/_checkword", {word: user_input}, function(data) {
-                     var result = data.result.uses_letters;
-                     // If the word is used from given letters
-                     if (result) {
-                        console.log(found.includes(user_input));
-                        // If the word has already been found
-                        if (found.includes(user_input)) {
-                           $(".message").append("You already found " + user_input);
-                        }
-                        else {
-                           // Add the word to the list of found words
-                           found.push(user_input);
+               if (!hasWon) {
+                  // Get the text from the user
+                  var user_input = $(this).val();
+                  
+                  // If the user entered a word from the list
+                  if (words.includes(user_input)) {
+                     // Clear any messages we had
+                     $(".message").empty();
+                     // Check if the word is made from the from the given letters
+                     $.getJSON("/_checkword", {word: user_input}, function(data) {
+                        var result = data.result.uses_letters;
+                        if (result) {
+                           // If the word has already been found
+                           if (found.includes(user_input)) {
+                              $(".message").append("You already found " + user_input);
+                           }
+                           else {
+                              // Add the word to the list of found words
+                              found.push(user_input);
+                              // Put a strikethrough on the word in the list
+                              $(".col-xs-2:contains( " + user_input + " )").css("text-decoration", "line-through");
 
-                           // Show the 'You Found' header
-                           $("#post-found").css("display", "block");
-                           // Add the word to the list of found words
-                           $("#results").append(user_input + " ");
-                           // Decrement the number of words left
-                           target--;
-                           $("#target").text(target);
-                        }
-                     }
-                     // Otherwise, 
-                     else {
-                        // Add a message saying that they entered an invalid word
-                        $(".message").append('"' + user_input + '" can\'t be made from the letters ' + letters);
-                     }   
-                  })
-                  // Clear the textbox
-                  $("#attempt").val('');
+                              // Show the 'You Found' header
+                              $("#post-found").css("display", "block");
+                              // Add the word to the list of found words
+                              $("#results").append(user_input + " ");
+                              // Decrement the number of words left
+                              target--;
+                              $("#target").text(target);
+
+                              if (target == 0) {
+                                 $("#winner").css("display", "block");
+                                 hasWon = true;
+                              }
+                           }
+                        } 
+                        else {
+                           // Add a message saying that they entered an invalid word
+                           $(".message").append('"' + user_input + '" can\'t be made from the letters ' + letters);
+                        }   
+                     })
+                     // Clear the textbox
+                     $("#attempt").val('');
+                  }
+                  event.stopImmediatePropagation();
                }
-               event.stopImmediatePropagation();
             });
          </script>
       </div>

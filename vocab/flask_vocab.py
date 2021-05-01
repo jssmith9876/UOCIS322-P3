@@ -135,22 +135,6 @@ def example():
     rslt = {"key": "value"}
     return flask.jsonify(result=rslt)
 
-# @app.route("/_getwords")
-# def getWords():
-#     words = WORDS.as_list()
-#     words_json = {}
-#     count = 0
-#     for word in words:
-#         words_json[count] = word
-#         count += 1
-#     return flask.jsonify(words_json)
-
-# @app.route("/_getinfo")
-# def getInfo():
-#     info = {}
-#     info['target'] = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
-#     info['letters'] = jumbled(WORDS.as_list(), info['target'])
-#     return flask.jsonify(info)
 
 target = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
 letters_to_use = jumbled(WORDS.as_list(), target)
@@ -158,14 +142,10 @@ letters_to_use = jumbled(WORDS.as_list(), target)
 @app.route("/_getinfo")
 def getInfo():
     info = {}
-    info['target'] = target
-    info['letters'] = letters_to_use
-    word_list = WORDS.as_list()
-    info['words'] = word_list
-    # count = 0
-    # for word in word_list:
-    #     info['words'][count] = word
-    #     count += 1
+    info['target'] = target             # Target number of words to find
+    info['letters'] = letters_to_use    # Letters they can use
+    word_list = WORDS.as_list() 
+    info['words'] = word_list           # A list of the words 
     return flask.jsonify(info)
 
 @app.route("/_checkword")
