@@ -21,6 +21,7 @@ app = flask.Flask(__name__)
 
 CONFIG = config.configuration()
 app.secret_key = CONFIG.SECRET_KEY  # Should allow using session variables
+WORDS = Vocab(CONFIG.VOCAB)
 # Need to keep global so it can be used in both AJAX handlers
 letters_to_use = ""
 
@@ -47,7 +48,6 @@ def success():
 @app.route("/_getinfo")
 def getinfo():
     # Set the variables
-    WORDS = Vocab(CONFIG.VOCAB)
     target = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
     global letters_to_use 
     letters_to_use = jumbled(WORDS.as_list(), target)
