@@ -21,16 +21,8 @@ app = flask.Flask(__name__)
 
 CONFIG = config.configuration()
 app.secret_key = CONFIG.SECRET_KEY  # Should allow using session variables
-
-#
-# One shared 'Vocab' object, read-only after initialization,
-# shared by all threads and instances.  Otherwise we would have to
-# store it in the browser and transmit it on each request/response cycle,
-# or else read it from the file on each request/responce cycle,
-# neither of which would be suitable for responding keystroke by keystroke.
-
-WORDS = Vocab(CONFIG.VOCAB)
-
+# Need to keep global so it can be used in both AJAX handlers
+letters_to_use = ""
 
 ###
 # Pages
@@ -39,31 +31,7 @@ WORDS = Vocab(CONFIG.VOCAB)
 @app.route("/")
 @app.route("/index")
 def index():
-    """The main page of the application"""
-    flask.g.vocab = WORDS.as_list()
-    flask.session["target_count"] = min(
-        len(flask.g.vocab), CONFIG.SUCCESS_AT_COUNT)
-    flask.session["jumble"] = jumbled(
-        flask.g.vocab, flask.session["target_count"])
-    flask.session["matches"] = []
-    app.logger.debug("Session variables have been set")
-    assert flask.session["matches"] == []
-    assert flask.session["target_count"] > 0
-    app.logger.debug("At least one seems to be set correctly")
-    return flask.render_template('vocab.html')
-
-@app.route("/test")
-def testpage():
-    return flask.render_template('vocab_js.html')
-
-@app.route("/keep_going")
-def keep_going():
-    """
-    After initial use of index, we keep the same scrambled
-    word and try to get more matches
-    """
-    flask.g.vocab = WORDS.as_list()
-    return flask.render_template('vocab.html')
+    return flask.render_template("vocab.html")
 
 
 @app.route("/success")
@@ -71,76 +39,20 @@ def success():
     return flask.render_template('success.html')
 
 
-#######################
-# Form handler.
-#   You'll need to change this to a
-#   a JSON request handler
-#######################
-
-@app.route("/_check", methods=["POST"])
-def check():
-    """
-    User has submitted the form with a word ('attempt')
-    that should be formed from the jumble and on the
-    vocabulary list.  We respond depending on whether
-    the word is on the vocab list (therefore correctly spelled),
-    made only from the jumble letters, and not a word they
-    already found.
-    """
-    app.logger.debug("Entering check")
-
-    # The data we need, from form and from cookie
-    text = flask.request.form["attempt"]
-    jumble = flask.session["jumble"]
-    matches = flask.session.get("matches", [])  # Default to empty list
-
-    # Is it good?
-    in_jumble = LetterBag(jumble).contains(text)
-    matched = WORDS.has(text)
-
-    # Respond appropriately
-    if matched and in_jumble and not (text in matches):
-        # Cool, they found a new word
-        matches.append(text)
-        flask.session["matches"] = matches
-    elif text in matches:
-        flask.flash("You already found {}".format(text))
-    elif not matched:
-        flask.flash("{} isn't in the list of words".format(text))
-    elif not in_jumble:
-        flask.flash(
-            '"{}" can\'t be made from the letters {}'.format(text, jumble))
-    else:
-        app.logger.debug("This case shouldn't happen!")
-        assert False  # Raises AssertionError
-
-    # Choose page:  Solved enough, or keep going?
-    if len(matches) >= flask.session["target_count"]:
-       return flask.redirect(flask.url_for("success"))
-    else:
-       return flask.redirect(flask.url_for("keep_going"))
-
-
 ###############
 # AJAX request handlers
 #   These return JSON, rather than rendering pages.
 ###############
 
-@app.route("/_example")
-def example():
-    """
-    Example ajax request handler
-    """
-    app.logger.debug("Got a JSON request")
-    rslt = {"key": "value"}
-    return flask.jsonify(result=rslt)
-
-
-target = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
-letters_to_use = jumbled(WORDS.as_list(), target)
-
 @app.route("/_getinfo")
-def getInfo():
+def getinfo():
+    # Set the variables
+    WORDS = Vocab(CONFIG.VOCAB)
+    target = min(len(WORDS.as_list()), CONFIG.SUCCESS_AT_COUNT)
+    global letters_to_use 
+    letters_to_use = jumbled(WORDS.as_list(), target)
+
+    # Format them into a dict, and return as json
     info = {}
     info['target'] = target             # Target number of words to find
     info['letters'] = letters_to_use    # Letters they can use
@@ -148,8 +60,10 @@ def getInfo():
     info['words'] = word_list           # A list of the words 
     return flask.jsonify(info)
 
+
 @app.route("/_checkword")
 def checkword():
+    # Check if the word can be made using the letters and return result
     word = flask.request.args.get("word", type=str)
     rslt = {"uses_letters": LetterBag(letters_to_use).contains(word)}
     return flask.jsonify(result=rslt)
